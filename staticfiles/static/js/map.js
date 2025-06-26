@@ -5,12 +5,12 @@ const OPERATIONAL_MODES = {
         name: "Firefighter",
         color: "#dc3545",
         tools: [
-            { id: "fire", label: "Fire", color: "warning", icon: "fire" },
-            { id: "wildfire", label: "Wildfire", color: "danger", icon: "exclamation-triangle" },
-            { id: "water", label: "Water Source", color: "primary", icon: "droplet" },
-            { id: "helipad", label: "Helipad", color: "info", icon: "circle-h" },
-            { id: "staging", label: "Staging", color: "secondary", icon: "tent" },
-            { id: "hazard", label: "Hazard", color: "danger", icon: "exclamation-diamond" }
+            { id: "fire", label: "Fire", color: "warning", icon: "fire", type: "b-r-f-h-c", text: "Fire Location" },
+            { id: "wildfire", label: "Wildfire", color: "danger", icon: "exclamation-triangle", type: "b-r-f-h-c", text: "Wildfire - Active" },
+            { id: "water", label: "Water Source", color: "primary", icon: "droplet", type: "b-m-p-w", text: "Water Source" },
+            { id: "helipad", label: "Helipad", color: "info", icon: "circle-h", type: "b-m-p-s-h", text: "Helipad" },
+            { id: "staging", label: "Staging", color: "secondary", icon: "tent", type: "b-m-p-s-p-l", text: "Staging Area" },
+            { id: "hazard", label: "Hazard", color: "danger", icon: "exclamation-diamond", type: "b-r-f-h-c", text: "Hazard" }
         ]
     },
     recon: {
@@ -18,7 +18,10 @@ const OPERATIONAL_MODES = {
         color: "#007bff",
         tools: [
             { id: "dp1", label: "Recon Point", color: "primary", icon: "map-marker-alt" },
-            { id: "redx", label: "Red X", color: "danger", icon: "times-circle" }
+            { id: "redx", label: "Red X", color: "danger", icon: "times-circle" },
+            { id: "obs", label: "Observation", color: "info", icon: "binoculars", type: "b-m-p-s-p-op", text: "Observation Point" },
+            { id: "target", label: "Target", color: "danger", icon: "bullseye", type: "b-m-p-a", text: "Target" },
+            { id: "checkpoint", label: "Checkpoint", color: "success", icon: "flag", type: "b-m-p-c", text: "Checkpoint" }
         ]
     },
     command: {
@@ -26,7 +29,10 @@ const OPERATIONAL_MODES = {
         color: "#28a745",
         tools: [
             { id: "unit", label: "Unit", color: "success", icon: "users" },
-            { id: "message", label: "Message", color: "info", icon: "comment-dots" }
+            { id: "message", label: "Message", color: "info", icon: "comment-dots" },
+            { id: "hq", label: "HQ", color: "primary", icon: "building", type: "b-m-p-s-p-h", text: "Headquarters" },
+            { id: "supply", label: "Supply", color: "warning", icon: "box", type: "b-m-p-s-p-s", text: "Supply Point" },
+            { id: "cache", label: "Cache", color: "info", icon: "box-archive", type: "b-m-p-s-p-c", text: "Cache Point" }
         ]
     },
     // Add other operational modes here...
@@ -378,14 +384,57 @@ const app = Vue.createApp({
 
             if (activeTool) {
                 // Handle mode-specific tools
-                switch(activeTool.id) {
-                    case "redx":
-                        this.addOrMove("redx", e.latlng, "/static/icons/x.png");
-                        return;
-                    case "dp1":
-                        this.addOrMove("dp1", e.latlng, "/static/icons/spoi_icon.png");
-                        return;
-                    // Add other tool handlers as needed
+                if (activeTool.type) {
+                    // Handle point creation for tools with defined types
+                    let uid = uuidv4();
+                    let now = new Date();
+                    let stale = new Date(now);
+                    stale.setDate(stale.getDate() + 365);
+
+                    let u = {
+                        uid: uid,
+                        category: "point",
+                        callsign: activeTool.label + "-" + this.point_num++,
+                        sidc: "",
+                        start_time: now,
+                        last_seen: now,
+                        stale_time: stale,
+                        type: activeTool.type,
+                        lat: e.latlng.lat,
+                        lon: e.latlng.lng,
+                        hae: 0,
+                        speed: 0,
+                        course: 0,
+                        status: "",
+                        text: activeTool.text,
+                        parent_uid: "",
+                        parent_callsign: "",
+                        color: "#ff0000",
+                        send: false,
+                        local: true,
+                    }
+
+                    if (this.config && this.config.uid) {
+                        u.parent_uid = this.config.uid;
+                        u.parent_callsign = this.config.callsign;
+                    }
+
+                    let unit = new Unit(this, u);
+                    this.units.set(unit.uid, unit);
+                    unit.post();
+
+                    this.setCurrentUnitUid(u.uid, true);
+                    return;
+                } else {
+                    // Handle special tools (redx, dp1)
+                    switch(activeTool.id) {
+                        case "redx":
+                            this.addOrMove("redx", e.latlng, "/static/icons/x.png");
+                            return;
+                        case "dp1":
+                            this.addOrMove("dp1", e.latlng, "/static/icons/spoi_icon.png");
+                            return;
+                    }
                 }
             }
 
