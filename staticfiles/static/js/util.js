@@ -76,6 +76,25 @@ function getIconUri(item, size, withText) {
         }
     }
 
+    // Mode-specific icons
+    if (item.mode) {
+        // Water source
+        if (item.type === "b-r-f-w") {
+            return {uri: toUri(circle(20, '#0000ff', '#000', 'W')), x: 10, y: 10}
+        }
+        // Helipad
+        if (item.type === "b-r-f-h-h") {
+            return {uri: toUri(circleWithH(20, '#00ff00')), x: 10, y: 10}
+        }
+        // Evidence
+        if (item.type === "b-m-p-s-e") {
+            return {uri: toUri(circle(20, '#ffff00', '#000', 'E')), x: 10, y: 10}
+        }
+        // Medical casualty
+        if (item.type === "b-r-f-m-c") {
+            return {uri: toUri(circleWithCross(20, '#ff0000')), x: 10, y: 10}
+        }
+    }
 
     if (item.category === "point") {
         return {uri: toUri(circle(16, item.color || '#f00', '#000', null)), x: 8, y: 8}
@@ -125,6 +144,32 @@ function circle(size, color, bg, text) {
         let fs = Math.floor(size / 2);
         s += '<text x="50%" y="50%" text-anchor="middle" font-size="' + fs + 'px" font-family="Arial" dy=".3em">' + text + '</text>';
     }
+    s += '</svg>';
+    return s;
+}
+
+function circleWithH(size, color) {
+    let x = Math.round(size / 2);
+    let r = x - 1;
+    
+    let s = '<svg width="' + size + '" height="' + size + '" xmlns="http://www.w3.org/2000/svg">';
+    s += '<circle style="fill: ' + color + '; stroke: #000;" cx="' + x + '" cy="' + x + '" r="' + r + '"/>';
+    s += '<text x="50%" y="50%" text-anchor="middle" font-size="' + Math.floor(size * 0.6) + 'px" font-family="Arial" font-weight="bold" dy=".3em">H</text>';
+    s += '</svg>';
+    return s;
+}
+
+function circleWithCross(size, color) {
+    let x = Math.round(size / 2);
+    let r = x - 1;
+    
+    let s = '<svg width="' + size + '" height="' + size + '" xmlns="http://www.w3.org/2000/svg">';
+    s += '<circle style="fill: white; stroke: ' + color + '; stroke-width: 2;" cx="' + x + '" cy="' + x + '" r="' + r + '"/>';
+    // Draw red cross
+    let w = size * 0.2;
+    let l = size * 0.6;
+    s += '<rect x="' + (x - w/2) + '" y="' + (x - l/2) + '" width="' + w + '" height="' + l + '" fill="' + color + '"/>';
+    s += '<rect x="' + (x - l/2) + '" y="' + (x - w/2) + '" width="' + l + '" height="' + w + '" fill="' + color + '"/>';
     s += '</svg>';
     return s;
 }

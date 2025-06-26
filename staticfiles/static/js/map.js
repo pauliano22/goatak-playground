@@ -1,5 +1,37 @@
 var map = null;
 
+const OPERATIONAL_MODES = {
+    firefighter: {
+        name: "Firefighter",
+        color: "#dc3545",
+        tools: [
+            { id: "fire", label: "Fire", color: "warning", icon: "fire" },
+            { id: "wildfire", label: "Wildfire", color: "danger", icon: "exclamation-triangle" },
+            { id: "water", label: "Water Source", color: "primary", icon: "droplet" },
+            { id: "helipad", label: "Helipad", color: "info", icon: "circle-h" },
+            { id: "staging", label: "Staging", color: "secondary", icon: "tent" },
+            { id: "hazard", label: "Hazard", color: "danger", icon: "exclamation-diamond" }
+        ]
+    },
+    recon: {
+        name: "Recon",
+        color: "#007bff",
+        tools: [
+            { id: "dp1", label: "Recon Point", color: "primary", icon: "map-marker-alt" },
+            { id: "redx", label: "Red X", color: "danger", icon: "times-circle" }
+        ]
+    },
+    command: {
+        name: "Command",
+        color: "#28a745",
+        tools: [
+            { id: "unit", label: "Unit", color: "success", icon: "users" },
+            { id: "message", label: "Message", color: "info", icon: "comment-dots" }
+        ]
+    },
+    // Add other operational modes here...
+};
+
 const app = Vue.createApp({
     data: function () {
         return {
@@ -25,7 +57,8 @@ const app = Vue.createApp({
             chat_msg: "",
             multiSelectMode: false,
             selectedUnits: new Set(),
-            operationalMode: 'firefighter', // default mode
+            operationalMode: 'firefighter',
+            OPERATIONAL_MODES: OPERATIONAL_MODES, // Add this line to make it available in template
         }
     },
 
@@ -41,7 +74,6 @@ const app = Vue.createApp({
 
         if (supportsWebSockets) {
             this.connect();
-            // setInterval(this.fetchAllUnits, 60000);
         }
 
         this.renew();
@@ -52,6 +84,10 @@ const app = Vue.createApp({
         map.on('mousemove', this.mouseMove);
 
         this.formFromUnit(null);
+
+        // Add mode loading
+        const savedMode = localStorage.getItem('goatak-mode') || 'firefighter';
+        this.switchOperationalMode(savedMode);
     },
 
     computed: {
@@ -60,6 +96,31 @@ const app = Vue.createApp({
         },
         units: function () {
             return this.unitsMap?.value || new Map();
+        },
+        // Add computed properties for operational mode
+        currentModeName: function() {
+            return OPERATIONAL_MODES[this.operationalMode]?.name || 'Default';
+        },
+        currentModeColor: function() {
+            return OPERATIONAL_MODES[this.operationalMode]?.color || '#6c757d';
+        },
+        chunkedTools: function() {
+            const tools = OPERATIONAL_MODES[this.operationalMode]?.tools || [];
+            const chunks = [];
+            for (let i = 0; i < tools.length; i += 2) {
+                chunks.push(tools.slice(i, i + 2));
+            }
+            return chunks;
+        },
+        modeIcon: function() {
+            const mode = this.operationalMode;
+            if (mode === 'firefighter') return 'fire';
+            if (mode === 'police') return 'shield';
+            if (mode === 'ems') return 'hospital';
+            if (mode === 'sar') return 'compass';
+            if (mode === 'recon') return 'binoculars';
+            if (mode === 'command') return 'flag';
+            return 'gear';
         }
     },
 
@@ -300,8 +361,10 @@ const app = Vue.createApp({
             return (v * 3.6).toFixed(1);
         },
 
+        // Update modeIs method to be more defensive
         modeIs: function (s) {
-            return document.getElementById(s).checked === true;
+            const element = document.getElementById(s);
+            return element ? element.checked : false;
         },
 
         mouseMove: function (e) {
@@ -309,16 +372,24 @@ const app = Vue.createApp({
         },
 
         mapClick: function (e) {
-            if (this.modeIs("redx")) {
-                this.addOrMove("redx", e.latlng, "/static/icons/x.png")
-                return;
-            }
-            if (this.modeIs("dp1")) {
-                this.addOrMove("dp1", e.latlng, "/static/icons/spoi_icon.png")
-                return;
+            const activeTool = OPERATIONAL_MODES[this.operationalMode]?.tools.find(
+                tool => this.modeIs(tool.id)
+            );
+
+            if (activeTool) {
+                // Handle mode-specific tools
+                switch(activeTool.id) {
+                    case "redx":
+                        this.addOrMove("redx", e.latlng, "/static/icons/x.png");
+                        return;
+                    case "dp1":
+                        this.addOrMove("dp1", e.latlng, "/static/icons/spoi_icon.png");
+                        return;
+                    // Add other tool handlers as needed
+                }
             }
 
-            // Additional handlers
+            // Continue with existing handlers
             if (this.modeIs("checkpoint")) {
                 let uid = uuidv4();
                 let now = new Date();
@@ -859,6 +930,51 @@ const app = Vue.createApp({
                 unit.updateMarker();
             });
         },
+
+        switchOperationalMode: function(mode) {
+            if (OPERATIONAL_MODES[mode]) {
+                this.operationalMode = mode;
+                this.updateTheme(mode);
+                localStorage.setItem('goatak-mode', mode);
+            } else {
+                console.warn(`Invalid operational mode: ${mode}`);
+                this.operationalMode = 'firefighter'; // Fallback to default
+            }
+        },
+
+        updateTheme: function(mode) {
+            const config = OPERATIONAL_MODES[mode] || OPERATIONAL_MODES.firefighter;
+            document.documentElement.style.setProperty('--mode-primary', config.color);
+            document.querySelector('.navbar').style.background = 
+                `linear-gradient(135deg, ${config.color} 0%, ${this.darkenColor(config.color, 20)} 100%)`;
+        },
+
+        darkenColor: function(color, percent) {
+            const num = parseInt(color.replace("#", ""), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) - amt;
+            const G = (num >> 8 & 0x00FF) - amt;
+            const B = (num & 0x0000FF) - amt;
+            return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+                (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+                (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+        },
+
+        clearAllLocalPoints: function() {
+            if (confirm('Are you sure you want to clear all local points?')) {
+                const localUnits = Array.from(this.units.values())
+                    .filter(u => u.unit.local)
+                    .map(u => u.uid);
+                    
+                let deletePromises = localUnits.map(uid => 
+                    fetch("/api/unit/" + uid, { method: "DELETE" })
+                );
+                
+                Promise.all(deletePromises).then(() => {
+                    this.fetchAllUnits();
+                });
+            }
+        },
     },
 });
 
@@ -935,15 +1051,13 @@ class Unit {
             if (this.redraw) {
                 this.marker.setIcon(getIcon(this.unit, true));
             }
+            // Add visual indicator for selected state
+            this.marker.setOpacity(this.app.selectedUnits.has(this.uid) ? 0.5 : 1.0);
         } else {
             this.marker = L.marker(this.coords(), { draggable: this.unit.local ? 'true' : 'false' });
             this.marker.setIcon(getIcon(this.unit, true));
 
             let vm = this;
-            this.marker.on('click', function (e) {
-                vm.app.setCurrentUnitUid(vm.uid, false);
-            });
-
             if (this.unit.local) {
                 this.marker.on('dragend', function (e) {
                     vm.unit.lat = e.target.getLatLng().lat;
@@ -957,6 +1071,9 @@ class Unit {
         this.marker.setLatLng(this.coords());
         this.marker.bindTooltip(this.popup());
         this.redraw = false;
+
+        // Update click handler for multi-select support
+        let vm = this;
         this.marker.on('click', function (e) {
             if (vm.app.multiSelectMode) {
                 vm.app.toggleUnitSelection(vm.uid);

@@ -5,20 +5,20 @@
             <span class="badge rounded-pill"
                 :class="{ 'text-bg-success': status == 'connected', 'text-bg-secondary': status == '', 'text-bg-danger': status == 'error'}">&nbsp;</span>
             
-            <!-- Mode Switcher -->
+            <!-- Add mode selector dropdown -->
             <div class="navbar-nav ms-2">
                 <div class="dropdown">
                     <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-gear"></i> {{ OPERATIONAL_MODES[operationalMode].name }} Mode
+                        <i class="bi" :class="'bi-' + modeIcon"></i> {{ OPERATIONAL_MODES[operationalMode]?.name || 'Default' }} Mode
                     </button>
                     <ul class="dropdown-menu">
                         <li v-for="(mode, key) in OPERATIONAL_MODES" :key="key">
                             <a class="dropdown-item" href="#" @click="switchOperationalMode(key)"
                                :class="{ active: operationalMode === key }">
                                 <i class="bi" :class="'bi-' + (key === 'firefighter' ? 'fire' : 
-                                                               key === 'police' ? 'shield' : 
-                                                               key === 'ems' ? 'hospital' : 
-                                                               key === 'sar' ? 'compass' : 'gear')"></i>
+                                                           key === 'police' ? 'shield' : 
+                                                           key === 'ems' ? 'hospital' : 
+                                                           key === 'sar' ? 'compass' : 'gear')"></i>
                                 {{ mode.name }}
                             </a>
                         </li>
@@ -92,6 +92,7 @@
             </div>
         </div>
     </nav>
+
     <div class="container-fluid flex-grow-1">
         <div class="row h-100">
             <div id="map" class="col h-100" style="cursor:crosshair;"></div>
@@ -147,14 +148,6 @@
 
                         <!-- Common Tools -->
                         <div class="btn-group btn-group-sm mb-1" role="group">
-                            <input type="radio" class="btn-check" name="btnradio" id="redx" autocomplete="off">
-                            <label class="btn btn-outline-danger" for="redx" style="flex: 1">Red-X</label>
-                            
-                            <input type="radio" class="btn-check" name="btnradio" id="dp1" autocomplete="off">
-                            <label class="btn btn-outline-primary" for="dp1" style="flex: 1">DP</label>
-                        </div>
-                        
-                        <div class="btn-group btn-group-sm mb-2" role="group">
                             <input type="radio" class="btn-check" name="btnradio" id="point" autocomplete="off">
                             <label class="btn btn-outline-primary" for="point" style="flex: 1">Point</label>
                             
@@ -163,15 +156,12 @@
                         </div>
 
                         <!-- Mode-specific tools -->
-                        <div class="mode-tools-label small text-muted mb-1">
-                            <i class="bi" :class="'bi-' + modeIcon"></i> {{ OPERATIONAL_MODES[operationalMode].name }} Tools:
-                        </div>
                         <div class="d-flex flex-column gap-1">
                             <div v-for="(row, index) in chunkedTools" :key="index" class="btn-group btn-group-sm" role="group">
                                 <template v-for="tool in row" :key="tool.id">
                                     <input type="radio" class="btn-check" name="btnradio" :id="tool.id" autocomplete="off">
                                     <label :class="'btn btn-outline-' + tool.color" :for="tool.id" style="flex: 1">
-                                        {{ tool.label }}
+                                        <i class="bi" :class="'bi-' + tool.icon"></i> {{ tool.label }}
                                     </label>
                                 </template>
                             </div>
@@ -186,13 +176,13 @@
 
                         <!-- Tool Status Display -->
                         <div v-if="getTool('redx')" class="mt-2 small">
-                            <span class="badge bg-danger">RedX</span>:
+                            <span class="badge bg-danger">RedX</span>: 
                             <span class="text-dark">{{ printCoordsll(getTool('redx').getLatLng()) }}</span>
-                            <span class="badge rounded-pill bg-success" style="cursor:pointer;"
+                            <span class="badge rounded-pill bg-success" style="cursor:pointer;" 
                                 @click="map.setView(getTool('redx').getLatLng())">
                                 <i class="bi bi-geo"></i>
                             </span>
-                            <span class="badge rounded-pill bg-danger" style="cursor:pointer;"
+                            <span class="badge rounded-pill bg-danger" style="cursor:pointer;" 
                                 @click="removeTool('redx')">X</span>
                         </div>
                         <div v-if="getTool('dp1')" class="mt-1 small">
@@ -274,8 +264,8 @@
                             <b>last seen</b>: {{ dt(current_unit.unit.last_seen) }}
                         </div>
                         <div v-if="current_unit.unit.mode" class="mt-1">
-                            <span class="badge" :style="'background-color: ' + OPERATIONAL_MODES[current_unit.unit.mode]?.color">
-                                {{ OPERATIONAL_MODES[current_unit.unit.mode]?.name }} Mode
+                            <span class="badge" :style="'background-color: ' + (OPERATIONAL_MODES[current_unit.unit.mode]?.color || '#6c757d')">
+                                {{ OPERATIONAL_MODES[current_unit.unit.mode]?.name || 'Unknown' }} Mode
                             </span>
                         </div>
                         {{ current_unit.unit.text }}
@@ -415,3 +405,28 @@
         </div>
     </div>
 </div>
+
+<!-- Add computed property before closing body tag -->
+<script>
+app.config.globalProperties = {
+    ...app.config.globalProperties,
+    computed: {
+        ...app.config.globalProperties.computed,
+        chunkedTools: function() {
+            const tools = OPERATIONAL_MODES[this.operationalMode].tools;
+            const chunks = [];
+            for (let i = 0; i < tools.length; i += 2) {
+                chunks.push(tools.slice(i, i + 2));
+            }
+            return chunks;
+        },
+        currentModeName() {
+            return this.OPERATIONAL_MODES[this.operationalMode]?.name || 'Unknown';
+        },
+        modeIcon() {
+            const mode = this.OPERATIONAL_MODES[this.operationalMode];
+            return mode ? (mode.icon.startsWith('bi-') ? mode.icon : 'bi-' + mode.icon) : 'bi-gear';
+        }
+    }
+};
+</script>
