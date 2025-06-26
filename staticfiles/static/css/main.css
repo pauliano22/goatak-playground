@@ -1,20 +1,127 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
+/* GoATAK Improved Theme with Better Contrast */
 
-.leaflet-control-attribution {
-    display: none;
+:root {
+    --primary-color: #2c3e50;
+    --secondary-color: #34495e;
+    --accent-color: #3498db;
+    --success-color: #27ae60;
+    --warning-color: #f39c12;
+    --danger-color: #e74c3c;
+    --card-bg: #ffffff;
+    --text-primary: #2c3e50;
+    --text-secondary: #6c757d;
+    --border-color: #dee2e6;
 }
 
-table.table-xs {
-    font-size: 10pt;
+/* Card styling with better contrast */
+.card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-div.info {
-    font-family: 'Roboto', sans-serif;
-    font-size: 11pt;
+.card-header {
+    background: var(--primary-color);
+    color: white;
+    border-radius: 8px 8px 0 0 !important;
+    font-weight: 600;
+    padding: 0.75rem 1rem;
 }
 
-.text-center {
-    height: 100%;
-    line-height: 100%;
-    text-align: center;
+/* Ensure text is always readable */
+.card-body {
+    color: var(--text-primary);
+    background: white;
+}
+
+/* Uniform button styling */
+.btn-group {
+    display: flex;
+    width: 100%;
+}
+
+.btn-group .btn {
+    flex: 1;
+    min-width: 0;
+    padding: 0.375rem 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Ensure all buttons have the same height */
+.btn-group-sm .btn {
+    height: 31px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Better contrast for active buttons */
+.btn-check:checked + .btn-outline-primary {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+}
+
+.btn-check:checked + .btn-outline-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+
+.btn-check:checked + .btn-outline-success {
+    background-color: #198754;
+    border-color: #198754;
+    color: white;
+}
+
+.btn-check:checked + .btn-outline-warning {
+    background-color: #ffc107;
+    border-color: #ffc107;
+    color: #000;
+}
+
+/* Text contrast improvements */
+.text-dark {
+    color: #212529 !important;
+}
+
+.text-muted {
+    color: #6c757d !important;
+}
+
+/* Badge improvements */
+.badge {
+    font-weight: 500;
+    padding: 0.35em 0.65em;
+}
+
+/* Coordinate text should be monospace and readable */
+.small code, 
+.small span:not(.badge) {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.85rem;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --card-bg: #2b2b2b;
+        --text-primary: #e9ecef;
+        --text-secondary: #adb5bd;
+        --border-color: #495057;
+    }
+    
+    .card-body {
+        background: var(--card-bg);
+        color: var(--text-primary);
+    }
+    
+    .text-dark {
+        color: #e9ecef !important;
+    }
 }

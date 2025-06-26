@@ -23,6 +23,9 @@ const app = Vue.createApp({
             chatroom: "",
             chat_uid: "",
             chat_msg: "",
+            multiSelectMode: false,
+            selectedUnits: new Set(),
+            operationalMode: 'firefighter', // default mode
         }
     },
 
@@ -30,7 +33,7 @@ const app = Vue.createApp({
         map = L.map('map');
         map.setView([60, 30], 11);
 
-        L.control.scale({metric: true}).addTo(map);
+        L.control.scale({ metric: true }).addTo(map);
 
         this.getConfig();
 
@@ -84,7 +87,7 @@ const app = Vue.createApp({
                             .then(d => vm.types = d);
                     }
 
-                    layers = L.control.layers({}, null, {hideSingleBase: true});
+                    layers = L.control.layers({}, null, { hideSingleBase: true });
                     layers.addTo(map);
 
                     let first = true;
@@ -143,7 +146,7 @@ const app = Vue.createApp({
         fetchAllUnits: function () {
             let vm = this;
 
-            fetch('/api/unit', {redirect: 'manual'})
+            fetch('/api/unit', { redirect: 'manual' })
                 .then(resp => {
                     if (!resp.ok) {
                         window.location.reload();
@@ -156,7 +159,7 @@ const app = Vue.createApp({
         fetchMessages: function () {
             let vm = this;
 
-            fetch('/api/message', {redirect: 'manual'})
+            fetch('/api/message', { redirect: 'manual' })
                 .then(resp => {
                     if (!resp.ok) {
                         window.location.reload();
@@ -179,8 +182,8 @@ const app = Vue.createApp({
 
                 const requestOptions = {
                     method: "POST",
-                    headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({lat: p.lat, lon: p.lng, name: "DP1"})
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ lat: p.lat, lon: p.lng, name: "DP1" })
                 };
                 fetch("/api/dp", requestOptions);
             }
@@ -314,6 +317,136 @@ const app = Vue.createApp({
                 this.addOrMove("dp1", e.latlng, "/static/icons/spoi_icon.png")
                 return;
             }
+
+            // Additional handlers
+            if (this.modeIs("checkpoint")) {
+                let uid = uuidv4();
+                let now = new Date();
+                let stale = new Date(now);
+                stale.setDate(stale.getDate() + 365);
+
+                let u = {
+                    uid: uid,
+                    category: "point",
+                    callsign: "CP-" + this.point_num++,
+                    sidc: "",
+                    start_time: now,
+                    last_seen: now,
+                    stale_time: stale,
+                    type: "b-m-p-c",  // CoT type for checkpoint
+                    lat: e.latlng.lat,
+                    lon: e.latlng.lng,
+                    hae: 0,
+                    speed: 0,
+                    course: 0,
+                    status: "",
+                    text: "Checkpoint",
+                    parent_uid: "",
+                    parent_callsign: "",
+                    color: "#00ff00",  // Green color
+                    send: false,
+                    local: true,
+                }
+
+                if (this.config && this.config.uid) {
+                    u.parent_uid = this.config.uid;
+                    u.parent_callsign = this.config.callsign;
+                }
+
+                let unit = new Unit(this, u);
+                this.units.set(unit.uid, unit);
+                unit.post();
+
+                this.setCurrentUnitUid(u.uid, true);
+                return;
+            }
+
+            // Fire point handler
+            if (this.modeIs("fire")) {
+                let uid = uuidv4();
+                let now = new Date();
+                let stale = new Date(now);
+                stale.setDate(stale.getDate() + 365);
+
+                let u = {
+                    uid: uid,
+                    category: "point",
+                    callsign: "Fire-" + this.point_num++,
+                    sidc: "",
+                    start_time: now,
+                    last_seen: now,
+                    stale_time: stale,
+                    type: "b-r-f-h-c",  // CoT type for fire/hazard
+                    lat: e.latlng.lat,
+                    lon: e.latlng.lng,
+                    hae: 0,
+                    speed: 0,
+                    course: 0,
+                    status: "",
+                    text: "Fire Location",
+                    parent_uid: "",
+                    parent_callsign: "",
+                    color: "#ff8c00",  // Orange color
+                    send: false,
+                    local: true,
+                }
+
+                if (this.config && this.config.uid) {
+                    u.parent_uid = this.config.uid;
+                    u.parent_callsign = this.config.callsign;
+                }
+
+                let unit = new Unit(this, u);
+                this.units.set(unit.uid, unit);
+                unit.post();
+
+                this.setCurrentUnitUid(u.uid, true);
+                return;
+            }
+
+            // Wildfire point handler
+            if (this.modeIs("wildfire")) {
+                let uid = uuidv4();
+                let now = new Date();
+                let stale = new Date(now);
+                stale.setDate(stale.getDate() + 365);
+
+                let u = {
+                    uid: uid,
+                    category: "point",
+                    callsign: "Wildfire-" + this.point_num++,
+                    sidc: "",
+                    start_time: now,
+                    last_seen: now,
+                    stale_time: stale,
+                    type: "b-r-f-h-c",  // CoT type for fire/hazard
+                    lat: e.latlng.lat,
+                    lon: e.latlng.lng,
+                    hae: 0,
+                    speed: 0,
+                    course: 0,
+                    status: "",
+                    text: "Wildfire - Active",
+                    parent_uid: "",
+                    parent_callsign: "",
+                    color: "#ff0000",  // Red color
+                    send: false,
+                    local: true,
+                }
+
+                if (this.config && this.config.uid) {
+                    u.parent_uid = this.config.uid;
+                    u.parent_callsign = this.config.callsign;
+                }
+
+                let unit = new Unit(this, u);
+                this.units.set(unit.uid, unit);
+                unit.post();
+
+                this.setCurrentUnitUid(u.uid, true);
+                return;
+            }
+
             if (this.modeIs("point")) {
                 let uid = uuidv4();
                 let now = new Date();
@@ -358,8 +491,8 @@ const app = Vue.createApp({
                 this.me.setLatLng(e.latlng);
                 const requestOptions = {
                     method: "POST",
-                    headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({lat: e.latlng.lat, lon: e.latlng.lng})
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ lat: e.latlng.lat, lon: e.latlng.lng })
                 };
                 fetch("/api/pos", requestOptions);
             }
@@ -654,7 +787,7 @@ const app = Vue.createApp({
 
         deleteCurrentUnit: function () {
             if (!this.current_unit_uid) return;
-            fetch("/api/unit/" + this.current_unit_uid, {method: "DELETE"});
+            fetch("/api/unit/" + this.current_unit_uid, { method: "DELETE" });
         },
 
         sendMessage: function () {
@@ -669,7 +802,7 @@ const app = Vue.createApp({
 
             const requestOptions = {
                 method: "POST",
-                headers: {"Content-Type": "application/json"},
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(msg)
             };
             let vm = this;
@@ -677,7 +810,55 @@ const app = Vue.createApp({
                 .then(resp => resp.json())
                 .then(d => vm.messages = d);
 
-        }
+        },
+
+        // Toggle multi-select mode
+        toggleMultiSelect: function() {
+            this.multiSelectMode = !this.multiSelectMode;
+            if (!this.multiSelectMode) {
+                // Clear selections when exiting multi-select
+                this.selectedUnits.clear();
+                this.redrawAllMarkers();
+            }
+        },
+        
+        toggleUnitSelection: function(uid) {
+            if (this.selectedUnits.has(uid)) {
+                this.selectedUnits.delete(uid);
+            } else {
+                this.selectedUnits.add(uid);
+            }
+            // Update visual indicator
+            let unit = this.units.get(uid);
+            if (unit) {
+                unit.updateMarker();
+            }
+        },
+        
+        deleteSelectedUnits: function() {
+            if (this.selectedUnits.size === 0) return;
+            
+            if (confirm(`Delete ${this.selectedUnits.size} selected items?`)) {
+                let deletePromises = [];
+                this.selectedUnits.forEach(uid => {
+                    deletePromises.push(
+                        fetch("/api/unit/" + uid, { method: "DELETE" })
+                    );
+                });
+                
+                Promise.all(deletePromises).then(() => {
+                    this.selectedUnits.clear();
+                    this.multiSelectMode = false;
+                    this.fetchAllUnits();
+                });
+            }
+        },
+        
+        redrawAllMarkers: function() {
+            this.units.forEach(unit => {
+                unit.updateMarker();
+            });
+        },
     },
 });
 
@@ -755,7 +936,7 @@ class Unit {
                 this.marker.setIcon(getIcon(this.unit, true));
             }
         } else {
-            this.marker = L.marker(this.coords(), {draggable: this.unit.local ? 'true' : 'false'});
+            this.marker = L.marker(this.coords(), { draggable: this.unit.local ? 'true' : 'false' });
             this.marker.setIcon(getIcon(this.unit, true));
 
             let vm = this;
@@ -776,6 +957,13 @@ class Unit {
         this.marker.setLatLng(this.coords());
         this.marker.bindTooltip(this.popup());
         this.redraw = false;
+        this.marker.on('click', function (e) {
+            if (vm.app.multiSelectMode) {
+                vm.app.toggleUnitSelection(vm.uid);
+            } else {
+                vm.app.setCurrentUnitUid(vm.uid, false);
+            }
+        });
     }
 
     hasCoords() {
@@ -808,7 +996,7 @@ class Unit {
     post() {
         const requestOptions = {
             method: "POST",
-            headers: {"Content-Type": "application/json"},
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(this.unit)
         };
         let vm = this;

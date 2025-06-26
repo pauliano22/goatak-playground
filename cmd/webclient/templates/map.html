@@ -3,33 +3,56 @@
         <div class="container-fluid">
             <a class="navbar-brand" href="#">GoATAK client <span v-if="config">{{ config.version }}</span></a>
             <span class="badge rounded-pill"
-                  :class="{ 'text-bg-success': status == 'connected', 'text-bg-secondary': status == '', 'text-bg-danger': status == 'error'}">&nbsp;</span>
+                :class="{ 'text-bg-success': status == 'connected', 'text-bg-secondary': status == '', 'text-bg-danger': status == 'error'}">&nbsp;</span>
+            
+            <!-- Mode Switcher -->
+            <div class="navbar-nav ms-2">
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-gear"></i> {{ OPERATIONAL_MODES[operationalMode].name }} Mode
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li v-for="(mode, key) in OPERATIONAL_MODES" :key="key">
+                            <a class="dropdown-item" href="#" @click="switchOperationalMode(key)"
+                               :class="{ active: operationalMode === key }">
+                                <i class="bi" :class="'bi-' + (key === 'firefighter' ? 'fire' : 
+                                                               key === 'police' ? 'shield' : 
+                                                               key === 'ems' ? 'hospital' : 
+                                                               key === 'sar' ? 'compass' : 'gear')"></i>
+                                {{ mode.name }}
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
             <div class="collapse navbar-collapse" id="navbarCollapse">
                 <ul class="navbar-nav me-auto mb-2 mb-md-0">
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDarkDropdownMenuLink" role="button"
-                           data-bs-toggle="dropdown" aria-expanded="false">
+                            data-bs-toggle="dropdown" aria-expanded="false">
                             Contacts <span class="badge rounded-pill bg-success">{{ contactsNum() }}</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink">
                             <li v-for="u in byCategory('contact')">
                                 <a class="dropdown-item" href="#" @click="setCurrentUnitUid(u.uid, true)">
-                                    <img :src="getImg(u.unit, 20)"/>&nbsp;
-                                    <span v-if="u.unit.lat === 0 && u.unit.lon === 0">* </span>{{ u.unit.callsign }}<span
-                                        v-if="u.unit.status && u.unit.status !=='Online'"> ({{ u.unit.status }})</span>
+                                    <img :src="getImg(u.unit, 20)" />&nbsp;
+                                    <span v-if="u.unit.lat === 0 && u.unit.lon === 0">* </span>{{ u.unit.callsign
+                                    }}<span v-if="u.unit.status && u.unit.status !=='Online'"> ({{ u.unit.status
+                                        }})</span>
                                 </a>
                             </li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDarkDropdownMenuLink2" role="button"
-                           data-bs-toggle="dropdown" aria-expanded="false">
+                            data-bs-toggle="dropdown" aria-expanded="false">
                             Units <span class="badge rounded-pill bg-success">{{ countByCategory('unit') }}</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink2">
                             <li v-for="u in byCategory('unit')">
                                 <a class="dropdown-item" href="#" @click="setCurrentUnitUid(u.uid, true)">
-                                    <img :src="getImg(u.unit, 14)"/>&nbsp;
+                                    <img :src="getImg(u.unit, 14)" />&nbsp;
                                     {{ u.name() }}
                                 </a>
                             </li>
@@ -37,7 +60,7 @@
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDarkDropdownMenuLink3" role="button"
-                           data-bs-toggle="dropdown" aria-expanded="false">
+                            data-bs-toggle="dropdown" aria-expanded="false">
                             Points <span class="badge rounded-pill bg-success">{{ countByCategory('point') }}</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink3">
@@ -50,15 +73,17 @@
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDarkDropdownMenuLink4" role="button"
-                           data-bs-toggle="dropdown" aria-expanded="false">
+                            data-bs-toggle="dropdown" aria-expanded="false">
                             Messages <span class="badge rounded-pill"
-                                           :class="msgNum(false) == 0?'text-bg-success':'text-bg-warning'">{{ msgNum(false) }}/{{ msgNum(true) }}</span>
+                                :class="msgNum(false) == 0?'text-bg-success':'text-bg-warning'">{{ msgNum(false) }}/{{
+                                msgNum(true) }}</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="navbarDarkDropdownMenuLink4">
                             <li v-for="m in Object.values(messages)">
                                 <a class="dropdown-item" href="#" @click="openChat(m.uid, m.from)">
                                     {{ m.from }} <span class="badge rounded-pill"
-                                                       :class="msgNum1(m.uid, false) == 0?'text-bg-success':'text-bg-warning'">{{ msgNum1(m.uid,false) }}/{{ msgNum1(m.uid,true) }}</span>
+                                        :class="msgNum1(m.uid, false) == 0?'text-bg-success':'text-bg-warning'">{{
+                                        msgNum1(m.uid,false) }}/{{ msgNum1(m.uid,true) }}</span>
                                 </a>
                             </li>
                         </ul>
@@ -70,88 +95,146 @@
     <div class="container-fluid flex-grow-1">
         <div class="row h-100">
             <div id="map" class="col h-100" style="cursor:crosshair;"></div>
-            <div class="col-3 my-2 h-100">
+            <div class="col-3 my-2 h-100" style="overflow-y: auto;">
                 <div class="card mb-1" v-if="config && config.callsign">
                     <div class="card-header">Me ({{ config.callsign }})</div>
                     <div class="card-body">
-                        <b>UID:</b> {{ config.uid }}<br/>
+                        <b>UID:</b> {{ config.uid }}<br />
                         <div v-if="config.team">
                             <b>Team:</b> {{ config.team }}, <b>Role:</b>{{ config.role }}
                         </div>
                         <div>
                             <b>coords:</b> {{ printCoords(config.lat, config.lon) }}
                             <span class="badge rounded-pill bg-success" style="cursor:default;"
-                                  @click="map.setView([config.lat, config.lon])"><i
-                                    class="bi bi-geo"></i></span>
-                            <span v-if="coords && (config.lat !== 0 || config.lon !== 0)">({{ distBea(latlng(config.lat, config.lon), coords) }} to cursor)</span>
+                                @click="map.setView([config.lat, config.lon])"><i class="bi bi-geo"></i></span>
+                            <span v-if="coords && (config.lat !== 0 || config.lon !== 0)">({{ distBea(latlng(config.lat,
+                                config.lon), coords) }} to cursor)</span>
                         </div>
                     </div>
                 </div>
+                
+                <!-- Enhanced Tools Card -->
                 <div class="card mb-1">
-                    <div class="card-header">Tools</div>
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>Tools</span>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-sm" 
+                                    :class="multiSelectMode ? 'btn-warning' : 'btn-outline-secondary'"
+                                    @click="toggleMultiSelect"
+                                    title="Multi-select mode">
+                                <i class="bi bi-check2-square"></i> Multi
+                            </button>
+                            <button v-if="multiSelectMode && selectedUnits.size > 0" 
+                                    class="btn btn-sm btn-danger" 
+                                    @click="deleteSelectedUnits">
+                                <i class="bi bi-trash"></i> Delete ({{ selectedUnits.size }})
+                            </button>
+                        </div>
+                    </div>
                     <div class="card-body">
-                        <div class="btn-group" role="group" aria-label="Tools">
-                            <input type="radio" class="btn-check" name="btnradio" id="select" autocomplete="off"
-                                   checked>
-                            <label class="btn btn-outline-primary btn-sm" for="select">Select</label>
+                        <!-- Basic Tools -->
+                        <div class="btn-group btn-group-sm mb-2" role="group">
+                            <input type="radio" class="btn-check" name="btnradio" id="select" autocomplete="off" checked>
+                            <label class="btn btn-outline-primary" for="select" style="flex: 1">
+                                <i class="bi bi-cursor"></i> Select
+                            </label>
 
+                            <input v-if="config && config.callsign" type="radio" class="btn-check" name="btnradio" id="me" autocomplete="off">
+                            <label v-if="config && config.callsign" class="btn btn-outline-primary" for="me" style="flex: 1">
+                                <i class="bi bi-person-fill"></i> Me
+                            </label>
+                        </div>
+
+                        <!-- Common Tools -->
+                        <div class="btn-group btn-group-sm mb-1" role="group">
                             <input type="radio" class="btn-check" name="btnradio" id="redx" autocomplete="off">
-                            <label class="btn btn-outline-primary btn-sm" for="redx">Red-x</label>
-
+                            <label class="btn btn-outline-danger" for="redx" style="flex: 1">Red-X</label>
+                            
                             <input type="radio" class="btn-check" name="btnradio" id="dp1" autocomplete="off">
-                            <label class="btn btn-outline-primary btn-sm" for="dp1">DP</label>
-
+                            <label class="btn btn-outline-primary" for="dp1" style="flex: 1">DP</label>
+                        </div>
+                        
+                        <div class="btn-group btn-group-sm mb-2" role="group">
                             <input type="radio" class="btn-check" name="btnradio" id="point" autocomplete="off">
-                            <label class="btn btn-outline-primary btn-sm" for="point">Point drop</label>
+                            <label class="btn btn-outline-primary" for="point" style="flex: 1">Point</label>
+                            
+                            <input type="radio" class="btn-check" name="btnradio" id="checkpoint" autocomplete="off">
+                            <label class="btn btn-outline-success" for="checkpoint" style="flex: 1">CP</label>
+                        </div>
 
-                            <input v-if="config && config.callsign" type="radio" class="btn-check"
-                                   name="btnradio" id="me"
-                                   autocomplete="off">
-                            <label v-if="config && config.callsign" class="btn btn-outline-primary btn-sm"
-                                   for="me">Me</label>
+                        <!-- Mode-specific tools -->
+                        <div class="mode-tools-label small text-muted mb-1">
+                            <i class="bi" :class="'bi-' + modeIcon"></i> {{ OPERATIONAL_MODES[operationalMode].name }} Tools:
                         </div>
-                        <div v-if="getTool('redx')" class="mt-1">
-                            <span class="badge bg-danger">RedX</span>: {{ printCoordsll(getTool('redx').getLatLng()) }}
-                            <span class="badge rounded-pill bg-success" style="cursor:default;"
-                                  @click="map.setView(getTool('redx').getLatLng())"><i class="bi bi-geo"></i></span>
-                            <span class="badge rounded-pill bg-danger" style="cursor:default;"
-                                  @click="removeTool('redx')">X</span>
+                        <div class="d-flex flex-column gap-1">
+                            <div v-for="(row, index) in chunkedTools" :key="index" class="btn-group btn-group-sm" role="group">
+                                <template v-for="tool in row" :key="tool.id">
+                                    <input type="radio" class="btn-check" name="btnradio" :id="tool.id" autocomplete="off">
+                                    <label :class="'btn btn-outline-' + tool.color" :for="tool.id" style="flex: 1">
+                                        {{ tool.label }}
+                                    </label>
+                                </template>
+                            </div>
                         </div>
-                        <div v-if="getTool('dp1')" class="mt-1">
-                            <span class="badge bg-success">DP1</span>: {{ printCoordsll(getTool('dp1').getLatLng()) }}
-                            <span class="badge rounded-pill bg-success" style="cursor:default;"
-                                  @click="map.setView(getTool('dp1').getLatLng())"><i class="bi bi-geo"></i></span>
-                            <span class="badge rounded-pill bg-danger" style="cursor:default;"
-                                  @click="removeTool('dp1')">X</span>
+
+                        <!-- Quick Actions -->
+                        <div class="mt-2 d-grid gap-1">
+                            <button class="btn btn-sm btn-outline-danger" @click="clearAllLocalPoints">
+                                <i class="bi bi-trash3"></i> Clear All Local Points
+                            </button>
                         </div>
-                        <div v-if="coords" class="mt-1">
-                            <span class="badge bg-secondary">cursor</span>: {{ printCoordsll(coords) }} <span
-                                v-if="getTool('redx')">({{ distBea(getTool('redx').getLatLng(), coords) }} from RedX)</span>
+
+                        <!-- Tool Status Display -->
+                        <div v-if="getTool('redx')" class="mt-2 small">
+                            <span class="badge bg-danger">RedX</span>:
+                            <span class="text-dark">{{ printCoordsll(getTool('redx').getLatLng()) }}</span>
+                            <span class="badge rounded-pill bg-success" style="cursor:pointer;"
+                                @click="map.setView(getTool('redx').getLatLng())">
+                                <i class="bi bi-geo"></i>
+                            </span>
+                            <span class="badge rounded-pill bg-danger" style="cursor:pointer;"
+                                @click="removeTool('redx')">X</span>
+                        </div>
+                        <div v-if="getTool('dp1')" class="mt-1 small">
+                            <span class="badge bg-success">DP1</span>:
+                            <span class="text-dark">{{ printCoordsll(getTool('dp1').getLatLng()) }}</span>
+                            <span class="badge rounded-pill bg-success" style="cursor:pointer;"
+                                @click="map.setView(getTool('dp1').getLatLng())">
+                                <i class="bi bi-geo"></i>
+                            </span>
+                            <span class="badge rounded-pill bg-danger" style="cursor:pointer;"
+                                @click="removeTool('dp1')">X</span>
+                        </div>
+                        <div v-if="coords" class="mt-1 small">
+                            <span class="badge bg-secondary">cursor</span>:
+                            <span class="text-dark">{{ printCoordsll(coords) }}</span>
+                            <span v-if="getTool('redx')" class="text-muted"> ({{ distBea(getTool('redx').getLatLng(),
+                                coords) }} from RedX)</span>
                         </div>
                     </div>
                 </div>
+                
                 <div class="card" v-if="current_unit">
                     <div class="card-header d-flex" @click="mapToUnit(current_unit)">
                         <div class="fs-5">
-                            <img :src="milImg(current_unit.unit)"/> {{ current_unit.name() }}
+                            <img :src="milImg(current_unit.unit)" /> {{ current_unit.name() }}
                             <span v-if="current_unit.unit.status"> ({{ current_unit.unit.status }})</span>
                         </div>
                         <div class="ms-auto">
                             <img class="ms-1" height="24" src="/static/icons/coord_unlock.png"
-                                 v-if="current_unit.unit.category !== 'point' && locked_unit_uid != current_unit.uid"
-                                 @click="locked_unit_uid=current_unit.uid"/>
+                                v-if="current_unit.unit.category !== 'point' && locked_unit_uid != current_unit.uid"
+                                @click="locked_unit_uid=current_unit.uid" />
                             <img class="ms-1" height="24" src="/static/icons/coord_lock.png"
-                                 v-if="locked_unit_uid == current_unit.uid"
-                                 @click="locked_unit_uid=''"/>
+                                v-if="locked_unit_uid == current_unit.uid" @click="locked_unit_uid=''" />
                         </div>
                         <div v-if="current_unit.unit.category === 'contact'">
                             <button class="btn btn-sm btn-outline-primary ms-1"
-                                    @click="openChat(current_unit.uid, current_unit.unit.callsign);"><i
+                                @click="openChat(current_unit.uid, current_unit.unit.callsign);"><i
                                     class="bi bi-chat-text-fill"></i></button>
                         </div>
                         <div v-else>
                             <button class="btn btn-sm btn-outline-primary ms-1" data-bs-toggle="modal"
-                                    data-bs-target="#edit">
+                                data-bs-target="#edit">
                                 <i class="bi bi-pencil-square"></i>
                             </button>
                             <button class="btn btn-sm btn-outline-danger ms-1" @click="deleteCurrentUnit">
@@ -161,7 +244,7 @@
 
                     </div>
                     <div class="card-body">
-                        <b>UID:</b> {{ current_unit.uid }}<br/>
+                        <b>UID:</b> {{ current_unit.uid }}<br />
                         <div v-if="current_unit.unit.team">
                             <b>Team:</b> {{ current_unit.unit.team }},
                             <b>Role:</b> {{ current_unit.unit.role }}
@@ -172,22 +255,28 @@
                         <div>
                             <b>coords:</b> {{ printCoords(current_unit.unit.lat, current_unit.unit.lon) }}
                             <span class="badge rounded-pill bg-success" style="cursor:default;"
-                                  @click="map.setView(current_unit.coords())"><i
-                                    class="bi bi-geo"></i></span>
+                                @click="map.setView(current_unit.coords())"><i class="bi bi-geo"></i></span>
                             <span v-if="coords">({{ distBea(current_unit.latlng(), coords) }} to cursor)</span>
                         </div>
                         <b>speed:</b> {{ sp(current_unit.unit.speed) }} km/h,
-                        <b>hae:</b> {{ current_unit.unit.hae.toFixed(1) }}<br/>
+                        <b>hae:</b> {{ current_unit.unit.hae.toFixed(1) }}<br />
                         <div v-if="current_unit.unit.tak_version">
-                            <b>ver:</b> {{ current_unit.unit.tak_version }}<br/>{{ current_unit.unit.device }}</div>
+                            <b>ver:</b> {{ current_unit.unit.tak_version }}<br />{{ current_unit.unit.device }}
+                        </div>
                         <div v-if="current_unit.unit.battery"><b>battery:</b> {{ current_unit.unit.battery }}</div>
                         <div v-if="current_unit.unit.parent_uid"><b>parent:</b> {{ current_unit.unit.parent_uid }}
-                            <span v-if="current_unit.unit.parent_callsign">({{ current_unit.unit.parent_callsign }})</span>
+                            <span v-if="current_unit.unit.parent_callsign">({{ current_unit.unit.parent_callsign
+                                }})</span>
                         </div>
                         <div>
                             <b>time:</b> {{ dt(current_unit.unit.start_time) }}
-                            <b>stale:</b>{{ dt(current_unit.unit.stale_time) }}<br/>
+                            <b>stale:</b>{{ dt(current_unit.unit.stale_time) }}<br />
                             <b>last seen</b>: {{ dt(current_unit.unit.last_seen) }}
+                        </div>
+                        <div v-if="current_unit.unit.mode" class="mt-1">
+                            <span class="badge" :style="'background-color: ' + OPERATIONAL_MODES[current_unit.unit.mode]?.color">
+                                {{ OPERATIONAL_MODES[current_unit.unit.mode]?.name }} Mode
+                            </span>
                         </div>
                         {{ current_unit.unit.text }}
                     </div>
@@ -198,13 +287,13 @@
 
     <!-- Modal -->
     <div class="modal fade" id="messages" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-         aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        aria-labelledby="staticBackdropLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="staticBackdropLabel">Chat messages {{ chatroom }}
                         <span v-if="getStatus(chat_uid)" class="badge"
-                              :class="getStatus(chat_uid) == 'Online' ?'text-bg-success':'text-bg-secondary'">
+                            :class="getStatus(chat_uid) == 'Online' ?'text-bg-success':'text-bg-secondary'">
                             {{ getStatus(chat_uid) }}</span>
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -212,14 +301,14 @@
                 <div class="modal-body">
                     <div v-for="m in getMessages()" class="alert alert-secondary">
                         <span class="badge text-bg-secondary">{{ dt(m.time) }}</span>
-                        <span class="badge mx-1"
-                              :class="m.from_uid == config.uid ? 'text-bg-success':'text-bg-info'">{{ m.from || m.from_uid }}</span>
+                        <span class="badge mx-1" :class="m.from_uid == config.uid ? 'text-bg-success':'text-bg-info'">{{
+                            m.from || m.from_uid }}</span>
                         {{ m.text }}
                     </div>
                 </div>
                 <div class="modal-footer">
                     <form @submit.prevent="sendMessage">
-                        <input type="text" class="form-control" id="message-text" v-model="chat_msg"/>
+                        <input type="text" class="form-control" id="message-text" v-model="chat_msg" />
                     </form>
                     <button type="button" class="btn btn-primary" @click="sendMessage">Send message</button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -229,7 +318,7 @@
     </div>
 
     <div class="modal fade" id="edit" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-         aria-labelledby="staticBackdropLabel1" aria-hidden="true">
+        aria-labelledby="staticBackdropLabel1" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
@@ -242,21 +331,21 @@
                             <label for="ed-callsign" class="col-auto col-form-label">Callsign</label>
                             <div class="col-auto">
                                 <input class="form-control" v-model="form_unit.callsign" id="ed-callsign"
-                                       placeholder="callsign">
+                                    placeholder="callsign">
                             </div>
 
                             <div class="btn-group col-4" role="group" aria-label="Type">
                                 <input type="radio" class="btn-check" name="btnradio" value="point"
-                                       v-model="form_unit.category" id="ed-point">
+                                    v-model="form_unit.category" id="ed-point">
                                 <label class="btn btn-outline-primary btn-sm" for="ed-point">Point</label>
 
                                 <input type="radio" class="btn-check" name="btnradio" value="unit"
-                                       v-model="form_unit.category" id="ed-unit">
+                                    v-model="form_unit.category" id="ed-unit">
                                 <label class="btn btn-outline-primary btn-sm" for="ed-unit">Unit</label>
                             </div>
 
                             <div class="form-check col-auto">
-                                <input class="form-check-input" type="checkbox" id="ed-send" v-model="form_unit.send"/>
+                                <input class="form-check-input" type="checkbox" id="ed-send" v-model="form_unit.send" />
                                 <label class="form-check-label" for="ed-send">Send</label>
                             </div>
                         </div>
@@ -268,6 +357,8 @@
                                     <option value="b-m-p-w-GOTO">Waypoint</option>
                                     <option value="b-m-p-s-p-op">OP</option>
                                     <option value="b-m-p-a">Aim</option>
+                                    <option value="b-m-p-c">Checkpoint</option>
+                                    <option value="b-r-f-h-c">Fire/Hazard</option>
                                 </select>
                             </div>
                         </div>
@@ -287,18 +378,17 @@
                                 <div class="col">
                                     <div class="input-group">
                                         <button type="button" class="btn btn-sm btn-secondary"
-                                                :disabled="form_unit.root_sidc.code === ''"
-                                                @click="setFormRootSidc(getRootSidc(form_unit.root_sidc.code).code)">
+                                            :disabled="form_unit.root_sidc.code === ''"
+                                            @click="setFormRootSidc(getRootSidc(form_unit.root_sidc.code).code)">
                                             &lt;
                                         </button>
-                                        <select class="form-select" id="ed-subtype"
-                                                v-model="form_unit.subtype">
+                                        <select class="form-select" id="ed-subtype" v-model="form_unit.subtype">
                                             <option v-for="t in form_unit.root_sidc.next" :value="t.code">{{ t.name }}
                                             </option>
                                         </select>
                                         <button type="button" class="btn btn-sm btn-secondary"
-                                                :disabled="! getSidc(form_unit.subtype).next"
-                                                @click="setFormRootSidc(form_unit.subtype)">&gt;
+                                            :disabled="! getSidc(form_unit.subtype).next"
+                                            @click="setFormRootSidc(form_unit.subtype)">&gt;
                                         </button>
                                     </div>
                                 </div>
@@ -308,7 +398,7 @@
                             <div class="col-12">
                                 <label for="ed-remarks">Remarks</label>
                                 <textarea id="ed-remarks" class="form-control" id="exampleFormControlTextarea1" rows="3"
-                                          v-model="form_unit.text"></textarea>
+                                    v-model="form_unit.text"></textarea>
                             </div>
                         </div>
                     </form>

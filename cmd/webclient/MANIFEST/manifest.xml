@@ -1,0 +1,11 @@
+<MissionPackageManifest version="2">
+<Configuration>
+  <Parameter name="uid" value="cac2b73f-a2de-5f50-97b7-5eaf8043e89d"/>
+  <Parameter name="name" value="Connection"/>
+  <Parameter name="onReceiveImport" value="true"/>
+  <Parameter name="onReceiveDelete" value="true"/>
+</Configuration>
+<Contents>
+  <Content ignore="false" zipEntry="user-profile.pref"/>
+</Contents>
+</MissionPackageManifest>

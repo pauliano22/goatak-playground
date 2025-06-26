@@ -59,6 +59,24 @@ function getIconUri(item, size, withText) {
     if (item.type === "b-m-p-a") {
         return {uri: "/static/icons/aimpoint.png", x: 16, y: 16}
     }
+
+    // Additional icon mapping
+    if (item.type === "b-m-p-c") {
+        return {uri: "/static/icons/checkpoint.png", x: 16, y: 16}
+    }
+
+    if (item.type === "b-r-f-h-c") {  // Fire/hazard type
+        // You can differentiate by callsign or color
+        if (item.color === "#ff0000" || item.callsign?.includes("Wildfire")) {
+            // For wildfire - use a custom icon if you have one
+            return {uri: "/static/icons/wildfire.png", x: 16, y: 16}
+        } else {
+            // For regular fire - use a custom icon or colored circle
+            return {uri: "/static/icons/fire.png", x: 16, y: 16}
+        }
+    }
+
+
     if (item.category === "point") {
         return {uri: toUri(circle(16, item.color || '#f00', '#000', null)), x: 8, y: 8}
     }
